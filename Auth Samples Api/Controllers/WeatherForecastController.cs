@@ -20,6 +20,7 @@ namespace Auth_Samples_Api.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpGet(Name = "GetWeatherForecast")]
         public IEnumerable<WeatherForecast> Get()
         {

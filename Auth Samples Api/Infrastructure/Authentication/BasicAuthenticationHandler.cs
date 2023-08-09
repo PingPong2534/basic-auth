@@ -1,8 +1,11 @@
 ﻿using BasicAuth.Models;
 using BasicAuth.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -30,6 +33,21 @@ namespace BasicAuth.Infrastructure.Authentication
 
             try
             {
+                var actionDescriptor = Context.GetEndpoint()?.Metadata.GetMetadata<ControllerActionDescriptor>();
+                if (actionDescriptor == null)
+                    return AuthenticateResult.NoResult();
+
+                var controllerType = actionDescriptor.ControllerTypeInfo.AsType();
+                var methodInfo = actionDescriptor.MethodInfo;
+
+                var isAutherize = controllerType.GetCustomAttribute(typeof(AuthorizeAttribute)) != null;
+                if (!isAutherize)
+                    return AuthenticateResult.NoResult();
+
+                var isAllowAnonymous = methodInfo.GetCustomAttribute(typeof(AllowAnonymousAttribute)) != null;
+                if (isAllowAnonymous)
+                    return AuthenticateResult.NoResult();
+
                 var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
                 var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
                 var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] { ':' }, 2);
